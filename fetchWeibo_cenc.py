@@ -1,4 +1,4 @@
-import requests, linecache, time, subprocess, os, gc, win32com.client
+import requests, time, os, gc, win32com.client
 
 windirPath = os.environ['windir']
 tempPath = os.environ['temp']
@@ -22,7 +22,7 @@ def push_notification():
     print(line)
 
     tempps1file = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
-    tempps1file.write('New-BurntToastNotification -Text \"{1}\",\"{2}\" -AppLogo ".\ico\cenc.ico"'.format(windirPath,line,message))
+    tempps1file.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo ".\ico\cenc.ico"'.format(line,message))
     tempps1file.close()
     os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
 
