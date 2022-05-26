@@ -1,12 +1,36 @@
-import requests, time, os, gc, win32com.client
+import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys
 
 windirPath = os.environ['windir']
 tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
+useSpeaker = True #todo tts可切换
 
 url = 'https://weibo.com/ceic'
+#url = 'http://localhost:8000/eqlist.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
+
+def isAdmin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+if isAdmin():
+    # Code here
+    subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。"; Install-Module -Name BurntToast}}'.format(windirPath))
+    subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" Set-ExecutionPolicy -ExecutionPolicy Bypass'.format(windirPath))
+    os.system('ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
+else:
+    # Re-run the program with admin rights
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+    sys.exit(0)
+time.sleep(1)
+
+console = ctypes.windll.kernel32.GetConsoleWindow()
+if console != 0:
+    ctypes.windll.user32.ShowWindow(console, 0)
+    ctypes.windll.kernel32.CloseHandle(console) #隐藏窗口
 
 def push_notification():
     c = 0
@@ -21,9 +45,9 @@ def push_notification():
     message = data[1]
     print(line)
 
-    tempps1file = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
-    tempps1file.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo ".\ico\cenc.ico"'.format(line,message))
-    tempps1file.close()
+    f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
+    f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo ".\ico\cenc.ico"'.format(line,message))
+    f.close()
     os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
 
     print('Executing TTS module...')
@@ -70,20 +94,20 @@ while True:
     fileIsWritten = True
 
     fileName = 'result.txt'
-    with open(fileName, 'r', encoding='utf-8') as f:
-        fRead = f.read()
-        try:
-            line1web
-        except NameError:
-            line1web = fRead
+    linecache.updatecache(fileName)
+    fRead = linecache.getline(fileName, 1)
+    try:
+        line1web
+    except NameError:
+        line1web = fRead
 
-        try:
-            line1file
-        except NameError:
-            line1file = line1web
-            time.sleep(1)
-            #f.close()
-            continue
+    try:
+        line1file
+    except NameError:
+        line1file = line1web
+        time.sleep(1)
+        #f.close()
+        continue
 
     if fRead != line1file:
         print('文件内容不相同')
@@ -103,3 +127,4 @@ while True:
     print('Waiting...')
     gc.collect()
     time.sleep(150)
+    
