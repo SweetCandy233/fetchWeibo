@@ -43,6 +43,7 @@ def push_notification():
     print('data:',data)
     line = data[0]
     message = data[1]
+    message = message.rsplit('\n')[0]
     print(line)
 
     f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
