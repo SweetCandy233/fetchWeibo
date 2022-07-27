@@ -10,19 +10,17 @@ url = 'https://weibo.com/ceic'
 #url = 'http://localhost:8000/eqlist.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 
-'''def isAdmin():
+def isAdmin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
         return False
 
 if isAdmin():
-    # Code here
     subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。"; Install-Module -Name BurntToast}}'.format(windirPath))
     subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" Set-ExecutionPolicy -ExecutionPolicy Bypass'.format(windirPath))
     os.system('ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
 else:
-    # Re-run the program with admin rights
     ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
     sys.exit(0)
 time.sleep(1)
@@ -31,7 +29,6 @@ console = ctypes.windll.kernel32.GetConsoleWindow()
 if console != 0:
     ctypes.windll.user32.ShowWindow(console, 0)
     ctypes.windll.kernel32.CloseHandle(console) #隐藏窗口
-'''
 
 def init_volume():
     vFileName = 'v.txt'
