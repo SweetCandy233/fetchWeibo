@@ -4,13 +4,13 @@ windirPath = os.environ['windir']
 tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
-useSpeaker = True #todo tts可切换
+#speaker.volume = 100 #tts音量
 
 url = 'https://weibo.com/ceic'
 #url = 'http://localhost:8000/eqlist.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 
-def isAdmin():
+'''def isAdmin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
@@ -31,6 +31,29 @@ console = ctypes.windll.kernel32.GetConsoleWindow()
 if console != 0:
     ctypes.windll.user32.ShowWindow(console, 0)
     ctypes.windll.kernel32.CloseHandle(console) #隐藏窗口
+'''
+
+def init_volume():
+    vFileName = 'v.txt'
+    if os.path.isfile(vFileName) == False:
+        new_file(vFileName, 'w', 'utf-8', '100') #default to 100 if not defined
+    else:
+        f = open(vFileName, 'r', encoding='utf-8')
+    linecache.updatecache(vFileName)
+    set_volume = linecache.getline(vFileName, 1)
+    try:
+        int(set_volume)
+        if (int(set_volume) >= 0) and (int(set_volume) <= 100):
+            print('input is vaild, setting volume to the given value')
+            pass
+        else:
+            set_volume = 100
+            print('vaild input but the value is out of range, setting to 100')
+    except ValueError as e:
+        set_volume = 100
+        print('invaild input, setting volume to 100')
+    speaker.volume = set_volume
+    print('set volume to:', set_volume)
 
 def push_notification():
     c = 0
@@ -39,11 +62,14 @@ def push_notification():
     first = lines[0]
 
     print('first:',first)
-    data = lines[0].split('：', 1)
+    if lines[0].count('自动') == 1:
+        data = lines[0].split('：', 1)
+    elif lines[0].count('正式') == 1:
+        data = lines[0].split('：', 1)
+    #data[0] = data[0].lstrip('据')
     print('data:',data)
     line = data[0]
     message = data[1]
-    message = message.rsplit('\n')[0]
     print(line)
 
     f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
@@ -52,6 +78,7 @@ def push_notification():
     os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
 
     print('Executing TTS module...')
+    init_volume()
     speaker.Speak(u'{}'.format(first))
 
 def new_file(fn, method, encoding, content):
@@ -77,8 +104,8 @@ while True:
     for line in f.readlines():
         if '#地震快讯#' in line:
             if '中国地震台网' in line:
-                line = line.split('（ <a', 1)[0]
-                line = line.split('#地震快讯#</a>', 1)[1]
+                line = line.split('（ <a', 1)[0] #end
+                line = line.split('#地震快讯#</a>', 1)[1] #begin
             else:
                 print('内容不匹配 等待重试')
                 time.sleep(10)
