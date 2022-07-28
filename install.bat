@@ -3,13 +3,12 @@ cd /d %~dp0
 :admin
 :: 7z unzip usage: 7z x -y file.7z -ofile/
 :: use x command to unzip, -y switch to assume yes on all queries
-::cd /d "%cpath%"
 7za.exe x -y "BurntToast_0.8.5.zip" -o"%ProgramFiles%\WindowsPowerShell\Modules\BurntToast\0.8.5"
-echo ·µ»ØÖµÎª%errorlevel%
+echo è¿”å›å€¼ä¸º%errorlevel%
 if "%errorlevel%" NEQ "0" (
-    echo ¸´ÖÆÊ§°Ü£¬Çë¼ì²éÎÄ¼şBurntToast_0.8.5.zipÊÇ·ñ´æÔÚ£¬»òÕßÊÇ·ñÒÔ¹ÜÀíÔ±Éí·İÔËĞĞ´Ë³ÌĞò¡£
+    echo å¤åˆ¶å¤±è´¥ï¼Œè¯·æ£€æŸ¥æ–‡ä»¶BurntToast_0.8.5.zipæ˜¯å¦å­˜åœ¨ï¼Œæˆ–è€…æ˜¯å¦ä»¥ç®¡ç†å‘˜èº«ä»½è¿è¡Œæ­¤ç¨‹åºã€‚
 ) else (
-    echo ¸´ÖÆÍê³É£¬Äú¿ÉÒÔ¹Ø±Õ´°¿ÚÁË¡£
+    echo å¤åˆ¶å®Œæˆï¼Œæ‚¨å¯ä»¥å…³é—­çª—å£äº†ã€‚
 )
 echo.
 pause
