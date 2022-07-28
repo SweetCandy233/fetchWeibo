@@ -1,15 +1,17 @@
-import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys
+import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json
 
 windirPath = os.environ['windir']
 tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
-
+updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
+releaseTime = 1658999880
+version = '0.2.2'
 url = 'https://weibo.com/ceic'
 #url = 'http://localhost:8000/eqlist.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 
-def isAdmin():
+'''def isAdmin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
@@ -28,7 +30,7 @@ console = ctypes.windll.kernel32.GetConsoleWindow()
 if console != 0:
     ctypes.windll.user32.ShowWindow(console, 0)
     ctypes.windll.kernel32.CloseHandle(console) #隐藏窗口
-
+'''
 
 def init_volume():
     vFileName = 'v.txt'
@@ -72,10 +74,12 @@ def push_notification():
     f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
     f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo ".\ico\cenc.ico"'.format(line,message))
     f.close()
+    # log
     os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
 
     print('Executing TTS module...')
     init_volume()
+    # log
     speaker.Speak(u'{}'.format(first))
 
 def new_file(fn, method, encoding, content):
@@ -83,12 +87,41 @@ def new_file(fn, method, encoding, content):
     f.write(content)
     f.close()
 
+def update_check():
+    try:
+        update = requests.get(url=updateUrl, headers=headers)
+    except Exception as e:
+        print('连接失败：{}'.format(str(e)))
+        # log
+        pass
+    else:
+        f = open('version.json', 'w', encoding='utf-8')
+        f.write(update.text)
+        f.close()
+
+        with open('version.json', 'r', encoding='utf-8') as update_result:
+            result = json.load(update_result)
+            print(result['time'])
+            if releaseTime < (result['time']):
+                print('有新版本可用！')
+                Mbox('更新检测', '目前版本{}，最新版本为{}，建议升级'.format(version,result['version']), 64)
+                # log
+            else:
+                print('目前已是最新版本！')
+                # log
+
+def Mbox(title, text, style):
+    return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+
+update_check()
+
 while True:
     try:
         data = requests.get(url, headers=headers)
     except Exception as e:
         print('连接失败：{}'.format(str(e)))
         print('Retrying in 5 seconds...')
+        # log
         time.sleep(5)
         continue
     data.encoding = 'utf-8'
@@ -104,6 +137,7 @@ while True:
                 line = line.split('（ <a', 1)[0] #end
                 line = line.split('#地震快讯#</a>', 1)[1] #begin
             else:
+                # log
                 print('内容不匹配 等待重试')
                 time.sleep(10)
                 continue
