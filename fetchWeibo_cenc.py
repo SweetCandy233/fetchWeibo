@@ -1,15 +1,20 @@
-import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json
+import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json, logging
 
 windirPath = os.environ['windir']
 tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
 updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
-releaseTime = 1658999880
-version = '0.2.2'
+releaseTime = 1659015180
+version = '0.3'
 url = 'https://weibo.com/ceic'
 #url = 'http://localhost:8000/eqlist.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
+
+LOG_FORMAT = "[%(asctime)s/%(levelname)s] %(message)s"
+DATE_FORMAT = "%Y/%m/%d %H:%M:%S %p"
+logging.basicConfig(filename='latest.log', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+
 
 def isAdmin():
     try:
@@ -18,7 +23,7 @@ def isAdmin():
         return False
 
 if isAdmin():
-    subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。您也可以尝试使用手动安装脚本install.bat来进行安装。"; Install-Module -Name BurntToast}}'.format(windirPath))
+    subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。您也可以尝试使用手动安装脚本install.bat来进行安装。如果您已经通过脚本完成安装，请按N拒绝下载并正常启动程序。"; Install-Module -Name BurntToast}}'.format(windirPath))
     subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" Set-ExecutionPolicy -ExecutionPolicy Bypass'.format(windirPath))
     os.system('ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
 else:
@@ -36,22 +41,28 @@ def init_volume():
     vFileName = 'v.txt'
     if os.path.isfile(vFileName) == False:
         new_file(vFileName, 'w', 'utf-8', '100') #default to 100 if not defined
+        logging.info('TTS语音合成 - 配置文件不存在，生成一份新文件')
     else:
         f = open(vFileName, 'r', encoding='utf-8')
+        logging.info('TTS语音合成 - 配置文件存在，读取配置')
     linecache.updatecache(vFileName)
     set_volume = linecache.getline(vFileName, 1)
     try:
         int(set_volume)
         if (int(set_volume) >= 0) and (int(set_volume) <= 100):
             print('input is vaild, setting volume to the given value')
+            logging.info('TTS语音合成 - 给定的音量值有效，音量设置为：{}'.format(set_volume))
             pass
         else:
             set_volume = 100
+            logging.warning('TTS语音合成 - 给定的音量值超界，重置为100')
             print('vaild input but the value is out of range, setting to 100')
     except ValueError as e:
         set_volume = 100
+        logging.warning('TTS语音合成 - 给定的音量值无效，重置为100')
         print('invaild input, setting volume to 100')
     speaker.volume = set_volume
+    #logging.info('TTS语音合成 - 音量设置为：{}'.format(set_volume))
     print('set volume to:', set_volume)
 
 def push_notification():
@@ -74,12 +85,12 @@ def push_notification():
     f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
     f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo ".\ico\cenc.ico"'.format(line,message))
     f.close()
-    # log
     os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
+    logging.info('地震信息处理完成，推送通知')
 
     print('Executing TTS module...')
     init_volume()
-    # log
+    logging.info('TTS语音合成 - 调用模块，朗读文本')
     speaker.Speak(u'{}'.format(first))
 
 def new_file(fn, method, encoding, content):
@@ -90,9 +101,10 @@ def new_file(fn, method, encoding, content):
 def update_check():
     try:
         update = requests.get(url=updateUrl, headers=headers)
+        logging.info('建立连接 {}'.format(updateUrl))
     except Exception as e:
         print('连接失败：{}'.format(str(e)))
-        # log
+        logging.warning('无法连接到更新服务器 {}'.format(updateUrl))
         pass
     else:
         f = open('version.json', 'w', encoding='utf-8')
@@ -104,24 +116,40 @@ def update_check():
             print(result['time'])
             if releaseTime < (result['time']):
                 print('有新版本可用！')
-                Mbox('更新检测', '目前版本{}，最新版本为{}，建议升级'.format(version,result['version']), 64)
-                # log
+                Mbox('更新检测', '目前版本{}，最新版本为{}，建议升级'.format(version, result['version']), 64)
+                logging.info('更新检测 - 检测到新版本：{}，目前版本为：{}'.format(result['version'], version))
             else:
                 print('目前已是最新版本！')
-                # log
+                logging.info('更新检测 - 目前版本：{}，无需更新'.format(version))
 
 def Mbox(title, text, style):
     return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+
+os.system('tasklist > "{}\\image_list.txt"'.format(tempPath))
+f = open('{}\\image_list.txt'.format(tempPath), 'r')
+image_list = f.readlines()
+image_count = 0
+for line in image_list:
+    if os.path.basename(__file__) in line:
+        image_count += 1
+if image_count > 2:
+    Mbox('程序多开检测', '检测到程序多开，请运行kill.bat关闭程序\n然后再运行此程序', 16)
+    sys.exit()
+else:
+    print('正常运行')
+    pass
 
 update_check()
 
 while True:
     try:
         data = requests.get(url, headers=headers)
+        logging.info('建立连接 {}'.format(url))
     except Exception as e:
         print('连接失败：{}'.format(str(e)))
         print('Retrying in 5 seconds...')
-        # log
+        logging.warning('无法连接到服务器 {}，获取地震信息失败'.format(url))
+        # Mbox('首次连接失败','请检查您的网络，程序将继续尝试连接，若仍无法连接则自动退出', 48)
         time.sleep(5)
         continue
     data.encoding = 'utf-8'
@@ -137,7 +165,7 @@ while True:
                 line = line.split('（ <a', 1)[0] #end
                 line = line.split('#地震快讯#</a>', 1)[1] #begin
             else:
-                # log
+                logging.info('地震信息获取成功，内容不符合通知条件，等待10秒后重试')
                 print('内容不匹配 等待重试')
                 time.sleep(10)
                 continue
@@ -184,6 +212,7 @@ while True:
             push_notification()
 
     print('Waiting...')
+    logging.info('执行完成，150秒后发起下一次请求')
     gc.collect()
     time.sleep(150)
     
