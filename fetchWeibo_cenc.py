@@ -11,7 +11,7 @@ url = 'https://weibo.com/ceic'
 #url = 'http://localhost:8000/eqlist.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 
-'''def isAdmin():
+def isAdmin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
@@ -30,7 +30,7 @@ console = ctypes.windll.kernel32.GetConsoleWindow()
 if console != 0:
     ctypes.windll.user32.ShowWindow(console, 0)
     ctypes.windll.kernel32.CloseHandle(console) #隐藏窗口
-'''
+
 
 def init_volume():
     vFileName = 'v.txt'
