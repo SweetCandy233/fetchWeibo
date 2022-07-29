@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json, logging
 
 windirPath = os.environ['windir']
@@ -5,16 +8,14 @@ tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
 updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
-releaseTime = 1659015180
-version = '0.3'
+releaseTime = 1659085726
+version = '0.3.2'
 url = 'https://weibo.com/ceic'
-#url = 'http://localhost:8000/eqlist.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
-
+baseName = os.path.basename(__file__).split('.')[0]+'.exe'
 LOG_FORMAT = "[%(asctime)s/%(levelname)s] %(message)s"
 DATE_FORMAT = "%Y/%m/%d %H:%M:%S %p"
 logging.basicConfig(filename='latest.log', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
-
 
 def isAdmin():
     try:
@@ -23,7 +24,7 @@ def isAdmin():
         return False
 
 if isAdmin():
-    subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。您也可以尝试使用手动安装脚本install.bat来进行安装。如果您已经通过脚本完成安装，请按N拒绝下载并正常启动程序。"; Install-Module -Name BurntToast}}'.format(windirPath))
+    #subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。您也可以尝试使用手动安装脚本install.bat来进行安装。如果您已经通过脚本完成安装，请按N拒绝下载并正常启动程序。"; Install-Module -Name BurntToast}}'.format(windirPath))
     subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" Set-ExecutionPolicy -ExecutionPolicy Bypass'.format(windirPath))
     os.system('ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
 else:
@@ -41,7 +42,7 @@ def init_volume():
     vFileName = 'v.txt'
     if os.path.isfile(vFileName) == False:
         new_file(vFileName, 'w', 'utf-8', '100') #default to 100 if not defined
-        logging.info('TTS语音合成 - 配置文件不存在，生成一份新文件')
+        logging.info('TTS语音合成 - 配置文件不存在，生成新文件')
     else:
         f = open(vFileName, 'r', encoding='utf-8')
         logging.info('TTS语音合成 - 配置文件存在，读取配置')
@@ -62,7 +63,6 @@ def init_volume():
         logging.warning('TTS语音合成 - 给定的音量值无效，重置为100')
         print('invaild input, setting volume to 100')
     speaker.volume = set_volume
-    #logging.info('TTS语音合成 - 音量设置为：{}'.format(set_volume))
     print('set volume to:', set_volume)
 
 def push_notification():
@@ -116,8 +116,8 @@ def update_check():
             print(result['time'])
             if releaseTime < (result['time']):
                 print('有新版本可用！')
-                Mbox('更新检测', '目前版本{}，最新版本为{}，建议升级'.format(version, result['version']), 64)
-                logging.info('更新检测 - 检测到新版本：{}，目前版本为：{}'.format(result['version'], version))
+                Mbox('更新检测', '目前版本{}，最新版本{}\n新版本功能：\n{}'.format(version, result['version'], result['desc']), 64)
+                logging.info('更新检测 - 检测到新版本：{}，目前版本：{}'.format(result['version'], version))
             else:
                 print('目前已是最新版本！')
                 logging.info('更新检测 - 目前版本：{}，无需更新'.format(version))
@@ -129,15 +129,20 @@ os.system('tasklist > "{}\\image_list.txt"'.format(tempPath))
 f = open('{}\\image_list.txt'.format(tempPath), 'r')
 image_list = f.readlines()
 image_count = 0
+
 for line in image_list:
-    if os.path.basename(__file__) in line:
+    if baseName in line:
         image_count += 1
 if image_count > 2:
     Mbox('程序多开检测', '检测到程序多开，请运行kill.bat关闭程序\n然后再运行此程序', 16)
+    logging.warning('多开检测 - 未通过检测，程序将会自动退出')
     sys.exit()
 else:
     print('正常运行')
+    logging.info('多开检测 - 正常，通过检测')
     pass
+
+f.close()
 
 update_check()
 
