@@ -3,13 +3,14 @@
 
 import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json, logging
 
+debugMode = True if sys.gettrace() else False
 windirPath = os.environ['windir']
 tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
 updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
-releaseTime = 1659085726
-version = '0.3.2'
+releaseTime = 1660140954
+version = '0.3.3'
 url = 'https://weibo.com/ceic'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 baseName = os.path.basename(__file__).split('.')[0]+'.exe'
@@ -23,20 +24,24 @@ def isAdmin():
     except:
         return False
 
-if isAdmin():
-    #subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。您也可以尝试使用手动安装脚本install.bat来进行安装。如果您已经通过脚本完成安装，请按N拒绝下载并正常启动程序。"; Install-Module -Name BurntToast}}'.format(windirPath))
-    subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" Set-ExecutionPolicy -ExecutionPolicy Bypass'.format(windirPath))
-    os.system('ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
+if debugMode:
+    print('debug mode is running')
+    pass
 else:
-    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-    sys.exit(0)
+    print('debug mode is not running')
+    if isAdmin():
+        #subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。您也可以尝试使用手动安装脚本install.bat来进行安装。如果您已经通过脚本完成安装，请按N拒绝下载并正常启动程序。"; Install-Module -Name BurntToast}}'.format(windirPath))
+        subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" Set-ExecutionPolicy -ExecutionPolicy Bypass'.format(windirPath))
+        os.system('ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
+    else:
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+        sys.exit(0)
 time.sleep(1)
 
 console = ctypes.windll.kernel32.GetConsoleWindow()
 if console != 0:
     ctypes.windll.user32.ShowWindow(console, 0)
     ctypes.windll.kernel32.CloseHandle(console) #隐藏窗口
-
 
 def init_volume():
     vFileName = 'v.txt'
@@ -110,7 +115,6 @@ def update_check():
         f = open('version.json', 'w', encoding='utf-8')
         f.write(update.text)
         f.close()
-
         with open('version.json', 'r', encoding='utf-8') as update_result:
             result = json.load(update_result)
             print(result['time'])
@@ -124,6 +128,15 @@ def update_check():
 
 def Mbox(title, text, style):
     return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+
+# begin
+
+print(os.path.exists('latest.log'))
+if os.path.exists('latest.log') == True:
+    with open('latest.log', 'w', encoding='utf-8') as f:
+        f.write('')
+else:
+    pass
 
 os.system('tasklist > "{}\\image_list.txt"'.format(tempPath))
 f = open('{}\\image_list.txt'.format(tempPath), 'r')
@@ -167,8 +180,8 @@ while True:
     for line in f.readlines():
         if '#地震快讯#' in line:
             if '中国地震台网' in line:
-                line = line.split('（ <a', 1)[0] #end
-                line = line.split('#地震快讯#</a>', 1)[1] #begin
+                line = line.split('（ <a', 1)[0] #结束判断
+                line = line.split('#地震快讯#</a>', 1)[1] #开始判断
             else:
                 logging.info('地震信息获取成功，内容不符合通知条件，等待10秒后重试')
                 print('内容不匹配 等待重试')
@@ -198,7 +211,6 @@ while True:
     except NameError:
         line1file = line1web
         time.sleep(1)
-        #f.close()
         continue
 
     if fRead != line1file:
