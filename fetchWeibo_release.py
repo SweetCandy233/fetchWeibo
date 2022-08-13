@@ -9,8 +9,9 @@ tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
 updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
-releaseTime = 1660140954
-version = '0.3.3'
+bakUpdateUrl = 'https://www.itsnotch404.top/fetchWeibo/version.json'
+releaseTime = 1660406293
+version = '0.3.4'
 url = 'https://weibo.com/ceic'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 baseName = os.path.basename(__file__).split('.')[0]+'.exe'
@@ -106,11 +107,17 @@ def new_file(fn, method, encoding, content):
 def update_check():
     try:
         update = requests.get(url=updateUrl, headers=headers)
-        logging.info('建立连接 {}'.format(updateUrl))
+        logging.info('建立连接 - 更新服务器 {}'.format(updateUrl))
     except Exception as e:
         print('连接失败：{}'.format(str(e)))
         logging.warning('无法连接到更新服务器 {}'.format(updateUrl))
-        pass
+        try:
+            update = requests.get(url=bakUpdateUrl, headers=headers)
+            logging.info('建立连接 - 备用更新服务器 {}'.format(bakUpdateUrl))
+        except Exception as e:
+            print('连接失败：{}'.format(str(e)))
+            logging.warning('无法连接到备用更新服务器 {}'.format(bakUpdateUrl))
+            pass
     else:
         f = open('version.json', 'w', encoding='utf-8')
         f.write(update.text)
