@@ -10,11 +10,12 @@ firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
 updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
 bakUpdateUrl = 'https://www.itsnotch404.top/fetchWeibo/version.json'
-releaseTime = 1660406293
-version = '0.3.4'
+releaseTime = 1660464584
+version = '0.3.5'
 url = 'https://weibo.com/ceic'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
-baseName = os.path.basename(__file__).split('.')[0]+'.exe'
+# baseName = os.path.basename(__file__).split('.')[0]+'.exe'
+baseName = 'fetchWeibo'
 LOG_FORMAT = "[%(asctime)s/%(levelname)s] %(message)s"
 DATE_FORMAT = "%Y/%m/%d %H:%M:%S %p"
 logging.basicConfig(filename='latest.log', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
@@ -45,9 +46,10 @@ if console != 0:
     ctypes.windll.kernel32.CloseHandle(console) #隐藏窗口
 
 def init_volume():
+    # recommended value: 70
     vFileName = 'v.txt'
     if os.path.isfile(vFileName) == False:
-        new_file(vFileName, 'w', 'utf-8', '100') #default to 100 if not defined
+        new_file(vFileName, 'w', 'utf-8', '70') #default to 70 if not defined
         logging.info('TTS语音合成 - 配置文件不存在，生成新文件')
     else:
         f = open(vFileName, 'r', encoding='utf-8')
@@ -61,13 +63,13 @@ def init_volume():
             logging.info('TTS语音合成 - 给定的音量值有效，音量设置为：{}'.format(set_volume))
             pass
         else:
-            set_volume = 100
-            logging.warning('TTS语音合成 - 给定的音量值超界，重置为100')
-            print('vaild input but the value is out of range, setting to 100')
+            set_volume = 70
+            logging.warning('TTS语音合成 - 给定的音量值超界，重置为70')
+            print('vaild input but the value is out of range, setting to 70')
     except ValueError as e:
-        set_volume = 100
-        logging.warning('TTS语音合成 - 给定的音量值无效，重置为100')
-        print('invaild input, setting volume to 100')
+        set_volume = 70
+        logging.warning('TTS语音合成 - 给定的音量值无效，重置为70')
+        print('invaild input, setting volume to 70')
     speaker.volume = set_volume
     print('set volume to:', set_volume)
 
@@ -155,6 +157,7 @@ for line in image_list:
         image_count += 1
 if image_count > 2:
     Mbox('程序多开检测', '检测到程序多开，请运行kill.bat关闭程序\n然后再运行此程序', 16)
+    logging.info('多开检测 - 返回值：{}'.format(image_count))
     logging.warning('多开检测 - 未通过检测，程序将会自动退出')
     sys.exit()
 else:
