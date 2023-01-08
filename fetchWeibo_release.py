@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json, logging
+import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json, logging, pyperclip
 
 debugMode = True if sys.gettrace() else False
 windirPath = os.environ['windir']
@@ -13,12 +13,13 @@ bakUpdateUrl = 'https://www.itsnotch404.top/fetchWeibo/version.json'
 releaseTime = 1660464584
 version = '0.3.5'
 url = 'https://weibo.com/ceic'
+# url = 'http://127.0.0.1:8000/weibo_ceic.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 # baseName = os.path.basename(__file__).split('.')[0]+'.exe'
 baseName = 'fetchWeibo'
 LOG_FORMAT = "[%(asctime)s/%(levelname)s] %(message)s"
 DATE_FORMAT = "%Y/%m/%d %H:%M:%S %p"
-logging.basicConfig(filename='latest.log', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+logging.basicConfig(filename='latest.log', encoding='utf-8', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 def isAdmin():
     try:
@@ -55,7 +56,7 @@ def init_volume():
         f = open(vFileName, 'r', encoding='utf-8')
         logging.info('TTS语音合成 - 配置文件存在，读取配置')
     linecache.updatecache(vFileName)
-    set_volume = linecache.getline(vFileName, 1)
+    set_volume = linecache.getline(vFileName, 1) #到底为什么日志会多出一行空行呢
     try:
         int(set_volume)
         if (int(set_volume) >= 0) and (int(set_volume) <= 100):
@@ -79,19 +80,48 @@ def push_notification():
     lines = f.readlines()
     first = lines[0]
 
-    print('first:',first)
-    if lines[0].count('自动') == 1:
-        data = lines[0].split('：', 1)
-    elif lines[0].count('正式') == 1:
-        data = lines[0].split('：', 1)
-    #data[0] = data[0].lstrip('据')
-    print('data:',data)
+    print('first:', first)
+    data = lines[0].split('：', 1)
+    
+    # global depthAutoFlag, final_content
+    depthAutoFlag = False
+    if '自动' in lines[0]:
+        try:
+            autoData = requests.get(url='https://www.appfly.cn/api/earthquake/list?page=1', headers=headers)
+            depthAutoFlag = True
+        except Exception:
+            depthAutoFlag = False
+            logging.warning('自动报深度获取失败，跳过。')
+            pass
+        if depthAutoFlag:
+            autoData_json = json.loads(autoData.text)
+            if (autoData_json['data'][0]['status']) == 'automatic': # 自动报位置不一定为[0]
+                depthAuto = autoData_json['data'][0]['depth']
+                depthAuto = str(int(float(depthAuto)))
+                print(depthAuto)
+                # depthAutoFlag = True
+
+    print('data:', data)
     line = data[0]
     message = data[1]
+    if depthAutoFlag:
+        message_split = message.split('，')
+        msg1 = message_split[0]
+        msg2 = message_split[1]
+        # msgList 已修改，待检验，message_split[2]始终是“最终结果以正式速报为准。”
+        msgList = [msg1, '，', msg2, '，', '震源深度{}千米'.format(depthAuto), '，', message_split[2]]
+        final_content = ''.join(msgList)
+        print(final_content)
+    else:
+        pass
     print(line)
-
+    
     f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
-    f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo ".\ico\cenc.ico"'.format(line,message))
+    if depthAutoFlag:
+        input_content = final_content
+    else:
+        input_content = message
+    f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo \".\ico\cenc.ico\"'.format(line, input_content))
     f.close()
     os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
     logging.info('地震信息处理完成，推送通知')
@@ -99,7 +129,11 @@ def push_notification():
     print('Executing TTS module...')
     init_volume()
     logging.info('TTS语音合成 - 调用模块，朗读文本')
-    speaker.Speak(u'{}'.format(first))
+    if depthAutoFlag:
+        tts_content = final_content
+    else:
+        tts_content = message
+    speaker.Speak(u'{}，{}'.format(line, tts_content))
 
 def new_file(fn, method, encoding, content):
     f = open(fn, method, encoding=encoding)
@@ -141,7 +175,7 @@ def Mbox(title, text, style):
 # begin
 
 print(os.path.exists('latest.log'))
-if os.path.exists('latest.log') == True:
+if os.path.exists('latest.log'):
     with open('latest.log', 'w', encoding='utf-8') as f:
         f.write('')
 else:
@@ -159,9 +193,10 @@ if image_count > 2:
     Mbox('程序多开检测', '检测到程序多开，请运行kill.bat关闭程序\n然后再运行此程序', 16)
     logging.info('多开检测 - 返回值：{}'.format(image_count))
     logging.warning('多开检测 - 未通过检测，程序将会自动退出')
-    sys.exit()
+    sys.exit(1)
 else:
     print('正常运行')
+    logging.info('多开检测 - 返回值：{}'.format(image_count))
     logging.info('多开检测 - 正常，通过检测')
     pass
 
@@ -177,6 +212,7 @@ while True:
         print('连接失败：{}'.format(str(e)))
         print('Retrying in 5 seconds...')
         logging.warning('无法连接到服务器 {}，获取地震信息失败'.format(url))
+        # pending: first try failed
         # Mbox('首次连接失败','请检查您的网络，程序将继续尝试连接，若仍无法连接则自动退出', 48)
         time.sleep(5)
         continue
@@ -184,6 +220,7 @@ while True:
 
     new_file('weibo_ceic.html', 'w', 'utf-8', data.text)
 
+    # 文件写入内容暂时与tts、通知内容不同（仅限自动报时），待修改
     c = 0
     f = open('weibo_ceic.html', 'r', encoding='utf-8')
     fileIsWritten = True
@@ -197,7 +234,7 @@ while True:
                 print('内容不匹配 等待重试')
                 time.sleep(10)
                 continue
-            if fileIsWritten == True:
+            if fileIsWritten:
                 fileIsWritten = False
                 new_file('result.txt', 'w', 'utf-8', line+'\n')
             else:
@@ -211,6 +248,7 @@ while True:
     fileName = 'result.txt'
     linecache.updatecache(fileName)
     fRead = linecache.getline(fileName, 1)
+    
     try:
         line1web
     except NameError:
@@ -229,10 +267,14 @@ while True:
         line1file = fRead
         f.close()
         print('推送通知')
+        # try:
+        #     pyperclip.copy(line1file)
+        # except Exception:
+        #     pass
         push_notification()
     else:
         print('文件内容相同')
-        if firstRun == True:
+        if firstRun:
             firstRun = False
             time.sleep(1)
             print('首次运行，推送通知')
@@ -243,3 +285,4 @@ while True:
     gc.collect()
     time.sleep(150)
     
+# pending json.load() --> json.loads()
