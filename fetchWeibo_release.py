@@ -10,15 +10,15 @@ firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
 updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
 bakUpdateUrl = 'https://www.itsnotch404.top/fetchWeibo/version.json'
-releaseTime = 1660464584
-version = '0.3.5'
+releaseTime = 1673350783
+version = '0.3.6'
 url = 'https://weibo.com/ceic'
 # url = 'http://127.0.0.1:8000/weibo_ceic.html'
 headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
 # baseName = os.path.basename(__file__).split('.')[0]+'.exe'
 baseName = 'fetchWeibo'
 LOG_FORMAT = "[%(asctime)s/%(levelname)s] %(message)s"
-DATE_FORMAT = "%Y/%m/%d %H:%M:%S %p"
+DATE_FORMAT = "%Y/%m/%d %H:%M:%S"
 logging.basicConfig(filename='latest.log', encoding='utf-8', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 def isAdmin():
@@ -29,13 +29,15 @@ def isAdmin():
 
 if debugMode:
     print('debug mode is running')
+    logging.info('调试模式正在运行')
     pass
 else:
     print('debug mode is not running')
+    logging.info('调试模式未运行')
     if isAdmin():
-        #subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if(Get-InstalledModule BurntToast) {{Write-Host "已安装BurntToast模块"}} Else {{Write-Host "未安装BurntToast模块，现在将开始安装该模块，请在弹出提示时始终允许操作，并请耐心等待。如果下载进度1分钟后仍未发生变化，请重启此程序或使用代理下载。您也可以尝试使用手动安装脚本install.bat来进行安装。如果您已经通过脚本完成安装，请按N拒绝下载并正常启动程序。"; Install-Module -Name BurntToast}}'.format(windirPath))
         subprocess.call('"{0}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" Set-ExecutionPolicy -ExecutionPolicy Bypass'.format(windirPath))
         os.system('ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
+        logging.info('创建文件关联 - ftype Microsoft.PowerShellScript.1="{0}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe" "%1"'.format(windirPath))
     else:
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
         sys.exit(0)
@@ -82,10 +84,11 @@ def push_notification():
 
     print('first:', first)
     data = lines[0].split('：', 1)
-    
-    # global depthAutoFlag, final_content
+
+    autoFlag = False
     depthAutoFlag = False
     if '自动' in lines[0]:
+        autoFlag = True
         try:
             autoData = requests.get(url='https://www.appfly.cn/api/earthquake/list?page=1', headers=headers)
             depthAutoFlag = True
@@ -103,7 +106,7 @@ def push_notification():
 
     print('data:', data)
     line = data[0]
-    message = data[1]
+    message = data[1].rstrip('\n')
     if depthAutoFlag:
         message_split = message.split('，')
         msg1 = message_split[0]
@@ -121,10 +124,11 @@ def push_notification():
         input_content = final_content
     else:
         input_content = message
-    f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo \".\ico\cenc.ico\"'.format(line, input_content))
+    f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo \"{2}\\ico\\cenc.ico\"'.format(line, input_content, os.getcwd()))
     f.close()
     os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
     logging.info('地震信息处理完成，推送通知')
+    logging.info('isAuto: {}, earthquakeInfo: "{}"'.format(autoFlag, input_content))
 
     print('Executing TTS module...')
     init_volume()
@@ -153,21 +157,18 @@ def update_check():
         except Exception as e:
             print('连接失败：{}'.format(str(e)))
             logging.warning('无法连接到备用更新服务器 {}'.format(bakUpdateUrl))
+            logging.warning('更新检查失败，跳过。')
             pass
     else:
-        f = open('version.json', 'w', encoding='utf-8')
-        f.write(update.text)
-        f.close()
-        with open('version.json', 'r', encoding='utf-8') as update_result:
-            result = json.load(update_result)
-            print(result['time'])
-            if releaseTime < (result['time']):
-                print('有新版本可用！')
-                Mbox('更新检测', '目前版本{}，最新版本{}\n新版本功能：\n{}'.format(version, result['version'], result['desc']), 64)
-                logging.info('更新检测 - 检测到新版本：{}，目前版本：{}'.format(result['version'], version))
-            else:
-                print('目前已是最新版本！')
-                logging.info('更新检测 - 目前版本：{}，无需更新'.format(version))
+        result = json.loads(update.text)
+        print(result['time'])
+        if releaseTime < (result['time']):
+            print('有新版本可用！')
+            Mbox('更新检测', '目前版本{}，最新版本{}\n更新内容：\n{}\n点击确定以继续运行程序'.format(version, result['version'], result['desc']), 64)
+            logging.info('更新检测 - 检测到新版本：{}，目前版本：{}'.format(result['version'], version))
+        else:
+            print('目前已是最新版本！')
+            logging.info('更新检测 - 目前版本：{}，无需更新'.format(version))
 
 def Mbox(title, text, style):
     return ctypes.windll.user32.MessageBoxW(0, text, title, style)
@@ -230,7 +231,7 @@ while True:
                 line = line.split('（ <a', 1)[0] #结束判断
                 line = line.split('#地震快讯#</a>', 1)[1] #开始判断
             else:
-                logging.info('地震信息获取成功，内容不符合通知条件，等待10秒后重试')
+                logging.info('检测到指定tag，但tag信息不符合，等待10秒后重试')
                 print('内容不匹配 等待重试')
                 time.sleep(10)
                 continue
@@ -284,5 +285,3 @@ while True:
     logging.info('执行完成，150秒后发起下一次请求')
     gc.collect()
     time.sleep(150)
-    
-# pending json.load() --> json.loads()
