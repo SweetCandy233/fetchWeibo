@@ -2,15 +2,11 @@
 
 本软件只适用于运行 Windows 10 或更高版本的系统。
 
-此外，需要 Windows PowerShell Package: `BurntToast` 以发送通知；
-
 需要允许执行 PowerShell 脚本，并同时将 `.ps1` 文件关联到直接执行而非打开记事本；
 
-需要 Python `requests` 和 `pypiwin32` 库。
+需要 Python `requests` 、`pypiwin32` 以及 `win10toast_click` 库。
 
  
-
-此软件应当正常运行，以上所提及的 Package 中，只有 `BurntToast` 需要额外下载。此程序不再提供下载功能，但您可以使用手动安装脚本进行安装。
 
 软件正常运行后，会转后台运行。如果想退出，请打开任务管理器，结束对应的进程即可，或者以管理员身份运行`kill.bat`。
 
@@ -20,8 +16,15 @@
 
 ===Changelog===
 
+`v0.3.7` 1. 更换通知模块为`win10toast_click`，增加点击通知打开微博的功能
+
+2. 更换更新服务器地址
+3. 优化TTS为异步操作
+
 `v0.3.6` 1. 修复PowerShell脚本的换行问题
+
 2. `json.load()`改为使用`json.loads()`
+
 3. 输出日志更为详细
 4. 修复通知图标显示问题
 5. 移除日志中不应存在的`AM/PM`12小时制时间标识
