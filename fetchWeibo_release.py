@@ -1,25 +1,34 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json, logging, pyperclip
+import requests, time, os, gc, win32com.client, linecache, ctypes, subprocess, sys, json, logging, webbrowser
+from win10toast_click import ToastNotifier
 
+toaster = ToastNotifier()
 debugMode = True if sys.gettrace() else False
 windirPath = os.environ['windir']
 tempPath = os.environ['temp']
 firstRun = True
 speaker = win32com.client.Dispatch('SAPI.SpVoice')
-updateUrl = 'https://239252.xyz/version/fetchWeibo/version.json'
+updateUrl = 'https://maybeiamcandy.github.io/version/fetchWeibo/version.json'
 bakUpdateUrl = 'https://www.itsnotch404.top/fetchWeibo/version.json'
-releaseTime = 1673350783
-version = '0.3.6'
 url = 'https://weibo.com/ceic'
 # url = 'http://127.0.0.1:8000/weibo_ceic.html'
-headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
+# headers = {'User-Agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'}
+headers = {'User-Agent': 'Mozilla/5.0(compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)'}
 # baseName = os.path.basename(__file__).split('.')[0]+'.exe'
 baseName = 'fetchWeibo'
 LOG_FORMAT = "[%(asctime)s/%(levelname)s] %(message)s"
 DATE_FORMAT = "%Y/%m/%d %H:%M:%S"
-logging.basicConfig(filename='latest.log', encoding='utf-8', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+logging.basicConfig(filename='latest.log', encoding='utf-8', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+
+appInfo = """{
+    "name": "fetchWeibo",
+    "version": "0.3.7",
+    "time": 1677247617
+}"""
+
+appInfo = json.loads(appInfo)
 
 def isAdmin():
     try:
@@ -76,6 +85,12 @@ def init_volume():
     speaker.volume = set_volume
     print('set volume to:', set_volume)
 
+def execute_url():
+    try:
+        webbrowser.open_new(url)
+    except Exception:
+        print('Failed to open URL.')
+
 def push_notification():
     c = 0
     f = open('result.txt', 'r', encoding='utf-8')
@@ -119,14 +134,16 @@ def push_notification():
         pass
     print(line)
     
-    f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
+    # f = open('{0}\\cencNotify.ps1'.format(tempPath), 'w', encoding='gb2312')
     if depthAutoFlag:
         input_content = final_content
     else:
         input_content = message
-    f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo \"{2}\\ico\\cenc.ico\"'.format(line, input_content, os.getcwd()))
-    f.close()
-    os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
+    # f.write('New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo \"{2}\\ico\\cenc.ico\"'.format(line, input_content, os.getcwd()))
+    # f.close()
+    # os.system('"{0}\\cencNotify.ps1"'.format(tempPath))
+    toaster.show_toast(title=line, msg=input_content, icon_path=r'.\\ico\\cenc.ico', duration=None, threaded=True, callback_on_click=execute_url)
+    # subprocess.call('"{3}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -command New-BurntToastNotification -Text \"{0}\",\"{1}\" -AppLogo \"{2}\\ico\\cenc.ico\"'.format(line, input_content, os.getcwd(), windirPath))
     logging.info('地震信息处理完成，推送通知')
     logging.info('isAuto: {}, earthquakeInfo: "{}"'.format(autoFlag, input_content))
 
@@ -137,7 +154,8 @@ def push_notification():
         tts_content = final_content
     else:
         tts_content = message
-    speaker.Speak(u'{}，{}'.format(line, tts_content))
+
+    speaker.Speak(u'{}，{}'.format(line, tts_content), 1)
 
 def new_file(fn, method, encoding, content):
     f = open(fn, method, encoding=encoding)
@@ -147,35 +165,32 @@ def new_file(fn, method, encoding, content):
 def update_check():
     try:
         update = requests.get(url=updateUrl, headers=headers)
-        logging.info('建立连接 - 更新服务器 {}'.format(updateUrl))
     except Exception as e:
         print('连接失败：{}'.format(str(e)))
-        logging.warning('无法连接到更新服务器 {}'.format(updateUrl))
+        logging.warning('无法连接到更新服务器')
         try:
             update = requests.get(url=bakUpdateUrl, headers=headers)
-            logging.info('建立连接 - 备用更新服务器 {}'.format(bakUpdateUrl))
         except Exception as e:
             print('连接失败：{}'.format(str(e)))
-            logging.warning('无法连接到备用更新服务器 {}'.format(bakUpdateUrl))
+            logging.warning('无法连接到备用更新服务器')
             logging.warning('更新检查失败，跳过。')
             pass
     else:
         result = json.loads(update.text)
         print(result['time'])
-        if releaseTime < (result['time']):
+        if appInfo['time'] < (result['time']):
             print('有新版本可用！')
-            Mbox('更新检测', '目前版本{}，最新版本{}\n更新内容：\n{}\n点击确定以继续运行程序'.format(version, result['version'], result['desc']), 64)
-            logging.info('更新检测 - 检测到新版本：{}，目前版本：{}'.format(result['version'], version))
+            Mbox('{} 更新检测', '目前版本{}，最新版本{}\n更新内容：\n{}\n点击确定以继续运行程序'.format(baseName, appInfo['version'], result['version'], result['desc']), 64)
+            logging.info('更新检测 - 检测到新版本：{}，目前版本：{}'.format(result['version'], appInfo['version']))
         else:
             print('目前已是最新版本！')
-            logging.info('更新检测 - 目前版本：{}，无需更新'.format(version))
+            logging.info('更新检测 - 目前版本：{}，无需更新'.format(appInfo['version']))
 
 def Mbox(title, text, style):
     return ctypes.windll.user32.MessageBoxW(0, text, title, style)
 
 # begin
 
-print(os.path.exists('latest.log'))
 if os.path.exists('latest.log'):
     with open('latest.log', 'w', encoding='utf-8') as f:
         f.write('')
@@ -198,7 +213,7 @@ if image_count > 2:
 else:
     print('正常运行')
     logging.info('多开检测 - 返回值：{}'.format(image_count))
-    logging.info('多开检测 - 正常，通过检测')
+    logging.info('多开检测 - 正常')
     pass
 
 f.close()
