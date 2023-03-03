@@ -2,8 +2,6 @@
 
 本软件只适用于运行 Windows 10 或更高版本的系统。
 
-需要允许执行 PowerShell 脚本，并同时将 `.ps1` 文件关联到直接执行而非打开记事本；
-
 需要 Python `requests` 、`pypiwin32` 以及 `win10toast_click` 库。
 
  
