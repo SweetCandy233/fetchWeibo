@@ -2,7 +2,7 @@
 
 本软件只适用于运行 Windows 10 或更高版本的系统。
 
-需要 Python `requests` 、`pypiwin32` 以及 `win10toast_click` 库。
+需要 Python `requests` 、`pypiwin32` 以及`win10toast_click`库。
 
  
 
@@ -14,10 +14,15 @@
 
 ===Changelog===
 
+`v0.3.8` 1. 更新服务器地址
+
+		2. 系统版本判断
+		2. 完善报文判断方式
+
 `v0.3.7` 1. 更换通知模块为`win10toast_click`，增加点击通知打开微博的功能
 
 2. 更换更新服务器地址
-3. 优化TTS为异步操作
+2. 优化TTS为异步操作
 
 `v0.3.6` 1. 修复PowerShell脚本的换行问题
 
